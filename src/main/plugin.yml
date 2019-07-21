@@ -1,0 +1,37 @@
+main: tk.bongostudios.yuujou.App
+name: Yuujou
+version: 0.1
+description: A group plugin (badly coded)
+commands:
+   group:
+      description: A multi-argument command for managing groups
+      usage: "Usage: /group [help|create|remove|list|kick|invite|user|option]"
+permissions:
+  group.create:
+   description: Allows to create a group
+   default: true
+  group.remove:
+   description: Allows to remove a group
+   default: op
+  group.list:
+   description: Allows to list members of a group
+   default: true
+  group.kick:
+   description: Allows to kick members from a group
+   default: true
+  group.user:
+   description: Allows to know in what group the user is
+   default: true
+  group.option:
+   description: Allows to configure a group
+   default: true
+  group.*:
+   description: Wildcard permission
+   default: op
+   children:
+     group.create: true
+     group.remove: true
+     group.list: true
+     group.kick: true
+     group.user: true
+     group.option: true
