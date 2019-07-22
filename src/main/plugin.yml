@@ -5,7 +5,7 @@ description: A group plugin (badly coded)
 commands:
    group:
       description: A multi-argument command for managing groups
-      usage: "Usage: /group [help|create|remove|list|kick|invite|user|option]"
+      usage: "Usage: /group [help|create|remove|list|kick|invite|user|option] (...args)"
 permissions:
   group.create:
    description: Allows to create a group

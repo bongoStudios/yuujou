@@ -1,8 +1,10 @@
 package tk.bongostudios.yuujou.db;
 
+import java.util.List;
 import com.mongodb.MongoClient;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.query.Query;
 import org.bukkit.entity.Player;
 
 public class Database {
@@ -32,6 +34,10 @@ public class Database {
         groupDAO.save(group);
     }
 
+    public void deleteGroup(Group group) {
+        groupDAO.delete(group);
+    }
+
     public User getUserByPlayer(Player player) {
         User u = userDAO.findOne("uuid", player.getUniqueId().toString());
         if (u == null) {
@@ -43,22 +49,24 @@ public class Database {
         return u;
     }
 
+    public List<User> getUsersByGroup(Group group) {
+        Query<User> query = userDAO.createQuery().filter("group ==", group);
+        return userDAO.find(query).asList();
+    }
+
     public Group getGroupByPlayer(Player player) {
-        User u = this.getUserByPlayer(player);
-        return u.group;
+        return this.getUserByPlayer(player).group;
+    }
+    public Group getGroupByName(String name) {
+        return groupDAO.findOne("name", name);
     }
 
     public boolean hasPlayerAGroup(Player player) {
-        User u = this.getUserByPlayer(player);
-        return u.group != null;
-    }
-    
-    public boolean hasGroupByAccronym(String accronym) {
-        return userDAO.findOne("accronym", accronym) != null;
+        return this.getUserByPlayer(player) != null;
     }
 
     public boolean hasGroupByName(String name) {
-        return userDAO.findOne("name", name) != null;
+        return this.getGroupByName(name) != null;
     }
 
     // Getters

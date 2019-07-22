@@ -17,9 +17,6 @@ public class Group {
     @Indexed(options = @IndexOptions(unique = true))
     public String name;
 
-    @Indexed(options = @IndexOptions(unique = true))
-    public String accronym;
-
     @Reference
     public List<User> leaders = new ArrayList<User>();
 
@@ -49,14 +46,6 @@ public class Group {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getAccronym() {
-        return accronym;
-    }
-
-    public void setAccronym(String accronym) {
-        this.accronym = accronym;
     }
 
     public List<User> getLeaders() {
