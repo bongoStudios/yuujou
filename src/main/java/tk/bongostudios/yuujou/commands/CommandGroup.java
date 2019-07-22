@@ -1,6 +1,7 @@
 package tk.bongostudios.yuujou.commands;
 
 import java.util.List;
+import java.util.Arrays;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.Command;
@@ -46,6 +47,34 @@ public class CommandGroup implements CommandExecutor {
                 }
                 return this.kickMemberFromGroup(player, args[1]);
             }
+            if(args[0] == "pvp") {
+                return this.switchPVPOnGroup(player);
+            }
+            if(args[0] == "private") {
+                return this.switchPrivateInfoOnGroup(player);
+            }
+            if(args[0] == "invite") {
+                if(args[1] == null) {
+                    return false;
+                }
+                return this.inviteUsersToGroup(player, Arrays.copyOfRange(args, 1, args.length));
+            }
+            if(args[0] == "promote") {
+                if(args[1] == null) {
+                    return false;
+                }
+                return this.promoteUsersOfGroup(player, Arrays.copyOfRange(args, 1, args.length));
+            }
+            if(args[0] == "demote") {
+                if(args[1] == null) {
+                    return false;
+                }
+                return this.demoteUsersOfGroup(player, Arrays.copyOfRange(args, 1, args.length));
+            }
+
+            if(args[0] != null) {
+                return this.getUserInfo(player, args[0]);
+            }
 
             return false;
         } 
@@ -55,11 +84,11 @@ public class CommandGroup implements CommandExecutor {
 
     private boolean createGroup(Player sender, String name) {
         if(db.hasPlayerAGroup(sender)) {
-            sender.sendMessage(ChatColor.RED + "You are already in a group!");
+            sender.sendMessage(ChatColor.RED + "You are already in a group");
             return true;
         }
         if(db.hasGroupByName(name)) {
-            sender.sendMessage(ChatColor.RED + "A group with that name already exists!");
+            sender.sendMessage(ChatColor.RED + "A group with that name already exists");
             return true;
         }
 
@@ -81,8 +110,12 @@ public class CommandGroup implements CommandExecutor {
     }
 
     private boolean removeGroup(CommandSender sender, String name) {
+        if(sender.hasPermission("yuujou.remove")) {
+            sender.sendMessage(ChatColor.RED + "You don't have permission to do that!");
+            return true;
+        }
         if(!db.hasGroupByName(name)) {
-            sender.sendMessage(ChatColor.RED + "There is no group with that name!");
+            sender.sendMessage(ChatColor.RED + "There is no group with that name");
             return true;
         }
 
@@ -162,8 +195,157 @@ public class CommandGroup implements CommandExecutor {
             return true;
         }
 
-        target.setGroup(null);
-        db.saveUser(target);
+        return this.removeMemberFromGroup(target);
+    }
+
+    private boolean switchPVPOnGroup(Player player) {
+        if(!db.hasPlayerAGroup(player)) {
+            player.sendMessage(ChatColor.RED + "You are not on a group");
+            return true;
+        }
+
+        Group group = db.getGroupByPlayer(player);
+        User leader = db.getUserByPlayer(player);
+        if(!group.leaders.contains(leader)) {
+            player.sendMessage(ChatColor.RED + "You are not a leader");
+            return true;
+        }
+
+        group.setAllowPVP(!group.allowPVP);
+        db.saveGroup(group);
+        player.sendMessage("You have switched the PvP to: " + (group.allowPVP ? ChatColor.GREEN : ChatColor.RED) + group.allowPVP);
+        return true;
+    }
+
+    private boolean switchPrivateInfoOnGroup(Player player) {
+        if(!db.hasPlayerAGroup(player)) {
+            player.sendMessage(ChatColor.RED + "You are not on a group");
+            return true;
+        }
+
+        Group group = db.getGroupByPlayer(player);
+        User leader = db.getUserByPlayer(player);
+        if(!group.leaders.contains(leader)) {
+            player.sendMessage(ChatColor.RED + "You are not a leader");
+            return true;
+        }
+
+        group.setPrivateInfo(!group.privateInfo);
+        db.saveGroup(group);
+        player.sendMessage("You have switched the PvP to: " + (group.privateInfo ? ChatColor.GREEN : ChatColor.RED) + group.privateInfo);
+        return true;
+    }
+
+    private boolean getUserInfo(Player player, String username) {
+        Group requesterGroup = db.getGroupByPlayer(player);
+        User user = db.getUserByName(username);
+        if(user == null) {
+            return false;
+        }
+        if((user.group == null || user.group.privateInfo) && (requesterGroup != user.group)) {
+            player.sendMessage("The user " + ChatColor.AQUA + user.username + ChatColor.RESET + " has no group or the group has private mode on");
+            return true;
+        }
+        player.sendMessage("The user " + ChatColor.AQUA + user.username + ChatColor.RESET + " is on the group " + ChatColor.DARK_PURPLE + user.group.name);
+        return true;
+    }
+
+    private boolean inviteUsersToGroup(Player player, String[] usernames) {
+        if(!db.hasPlayerAGroup(player)) {
+            player.sendMessage(ChatColor.RED + "You are not on a group");
+            return true;
+        }
+
+        Group group = db.getGroupByPlayer(player);
+        User leader = db.getUserByPlayer(player);
+        if(!group.leaders.contains(leader)) {
+            player.sendMessage(ChatColor.RED + "You are not a leader");
+            return true;
+        }
+
+        String invalidUsernames = "\n";
+        int invalidUsernamesAmount = 0;
+        for(String username : usernames) {
+            User user = db.getUserByName(username);
+            if(user == null) {
+                invalidUsernames += username + "\n";
+                continue;
+            }
+            user.group = group; //need to change this
+            db.saveUser(user);
+        }
+
+        if(invalidUsernamesAmount > 0) {
+            player.sendMessage(ChatColor.RED + "There were " + invalidUsernamesAmount + " invalid usernames:" + invalidUsernames + ChatColor.RESET + ChatColor.GREEN + "All the rest you mentioned were invited though.");
+            return true;
+        }
+        player.sendMessage(ChatColor.GREEN + "All the usernames you mentioned were invited");
+        return true;
+    }
+
+    private boolean promoteUsersOfGroup(Player player, String[] usernames) {
+        if(!db.hasPlayerAGroup(player)) {
+            player.sendMessage(ChatColor.RED + "You are not on a group");
+            return true;
+        }
+
+        Group group = db.getGroupByPlayer(player);
+        User leader = db.getUserByPlayer(player);
+        if(!group.leaders.contains(leader)) {
+            player.sendMessage(ChatColor.RED + "You are not a leader");
+            return true;
+        }
+
+        String invalidUsernames = "\n";
+        int invalidUsernamesAmount = 0;
+        for(String username : usernames) {
+            User user = db.getUserByName(username);
+            if(user == null || user.group != group) {
+                invalidUsernames += username + "\n";
+                continue;
+            }
+            group.addLeader(user);
+        }
+        db.saveGroup(group);
+
+        if(invalidUsernamesAmount > 0) {
+            player.sendMessage(ChatColor.RED + "There were " + invalidUsernamesAmount + " invalid usernames:" + invalidUsernames + ChatColor.RESET + ChatColor.GREEN + "All the rest you mentioned were promoted though.");
+            return true;
+        }
+        player.sendMessage(ChatColor.GREEN + "All the usernames you mentioned were promoted");
+        return true;
+    }
+
+    private boolean demoteUsersOfGroup(Player player, String[] usernames) {
+        if(!db.hasPlayerAGroup(player)) {
+            player.sendMessage(ChatColor.RED + "You are not on a group");
+            return true;
+        }
+
+        Group group = db.getGroupByPlayer(player);
+        User leader = db.getUserByPlayer(player);
+        if(!group.leaders.contains(leader)) {
+            player.sendMessage(ChatColor.RED + "You are not a leader");
+            return true;
+        }
+
+        String invalidUsernames = "\n";
+        int invalidUsernamesAmount = 0;
+        for(String username : usernames) {
+            User user = db.getUserByName(username);
+            if(user == null || user.group != group || !group.leaders.contains(user) || user == leader) {
+                invalidUsernames += username + "\n";
+                continue;
+            }
+            group.removeLeader(user);
+        }
+        db.saveGroup(group);
+
+        if(invalidUsernamesAmount > 0) {
+            player.sendMessage(ChatColor.RED + "There were " + invalidUsernamesAmount + " invalid usernames:" + invalidUsernames + ChatColor.RESET + ChatColor.GREEN + "All the rest you mentioned were demoted though.");
+            return true;
+        }
+        player.sendMessage(ChatColor.GREEN + "All the usernames you mentioned were demoted");
         return true;
     }
 }

@@ -5,7 +5,7 @@ description: A group plugin (badly coded)
 commands:
    group:
       description: A multi-argument command for managing groups
-      usage: "Usage: /group [help|create|remove|list|kick|invite|user|option] (...args)"
+      usage: "Usage: /group [help|create|remove|list|kick|invite|user|pvp|private|promote|demote] (...args)"
 permissions:
   yuujou.create:
    description: Allows to create a group
@@ -22,10 +22,10 @@ permissions:
   yuujou.user:
    description: Allows to know in what group the user is
    default: true
-  yuujou.allowpvp:
+  yuujou.pvp:
    description: Allows to switch PVP in the group
    default: true
-  yuujou.privateinfo:
+  yuujou.private:
    description: Allows to switch private info to the group
    default: true
   yuujou.*:
