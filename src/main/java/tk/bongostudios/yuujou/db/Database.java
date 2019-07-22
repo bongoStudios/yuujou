@@ -5,6 +5,7 @@ import com.mongodb.MongoClient;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.query.Query;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public class Database {
@@ -44,6 +45,23 @@ public class Database {
             u = new User();
             u.setUUID(player.getUniqueId().toString());
             u.setUsername(player.getName());
+            userDAO.save(u);
+        }
+        return u;
+    }
+
+    public User getUserByName(String username) {
+        User u = userDAO.findOne("username", username);
+        if (u == null) {
+            try {
+                Bukkit.getPlayer(username);      
+            } catch(NullPointerException npe) {
+                return null;
+            }
+            Player player = Bukkit.getPlayer(username); 
+            u = new User();
+            u.setUUID(player.getUniqueId().toString());
+            u.setUsername(username);
             userDAO.save(u);
         }
         return u;

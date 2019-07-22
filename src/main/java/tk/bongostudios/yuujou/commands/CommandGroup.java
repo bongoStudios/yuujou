@@ -40,6 +40,12 @@ public class CommandGroup implements CommandExecutor {
                 }
                 return this.createGroup(player, args[1]);
             }
+            if(args[0] == "kick") {
+                if(args[1] == null) {
+                    return false;
+                }
+                return this.kickMemberFromGroup(player, args[1]);
+            }
 
             return false;
         } 
@@ -116,7 +122,7 @@ public class CommandGroup implements CommandExecutor {
         Group group = sender instanceof Player ? db.getGroupByPlayer((Player) sender) : db.getGroupByName(name);
         if(group.privateInfo && sender instanceof Player) {
             User user = db.getUserByPlayer((Player) sender);
-            if(!user.group.equals(group)) {
+            if(user.group.id != group.id) {
                 sender.sendMessage(ChatColor.RED + "The group has private info active");
                 return true;
             }
@@ -129,6 +135,35 @@ public class CommandGroup implements CommandExecutor {
         }
 
         sender.sendMessage("Members of the group " + ChatColor.DARK_PURPLE + group.name + ChatColor.RESET + listMembers);
+        return true;
+    }
+
+    private boolean kickMemberFromGroup(Player player, String username) {
+        if(!db.hasPlayerAGroup(player)) {
+            player.sendMessage(ChatColor.RED + "You are not on a group");
+            return true;
+        }
+
+        Group group = db.getGroupByPlayer(player);
+        User leader = db.getUserByPlayer(player);
+        if(!group.leaders.contains(leader)) {
+            player.sendMessage(ChatColor.RED + "You are not a leader");
+            return true;
+        }
+
+        List<User> members = db.getUsersByGroup(group);
+        User target = db.getUserByName(username);
+        if(target == null) {
+            player.sendMessage(ChatColor.RED + "That player doesn't exist");
+            return true;
+        }
+        if(!members.contains(target)) {
+            player.sendMessage(ChatColor.RED + "That player isn't on your group");
+            return true;
+        }
+
+        target.setGroup(null);
+        db.saveUser(target);
         return true;
     }
 }
