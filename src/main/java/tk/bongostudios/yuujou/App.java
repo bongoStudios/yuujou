@@ -1,6 +1,7 @@
 package tk.bongostudios.yuujou;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import tk.bongostudios.yuujou.Util;
 import tk.bongostudios.yuujou.db.Database;
 import tk.bongostudios.yuujou.commands.CommandGroup;
 
@@ -10,6 +11,7 @@ public class App extends JavaPlugin {
     @Override
     public void onEnable() {
         db = new Database();
+        Util.setDb(db);
         this.getCommand("group").setExecutor(new CommandGroup(db));
     }
 

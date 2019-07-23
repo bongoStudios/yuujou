@@ -8,9 +8,12 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandException;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
+import org.bukkit.scheduler.BukkitTask;
 import tk.bongostudios.yuujou.db.Database;
 import tk.bongostudios.yuujou.db.User;
 import tk.bongostudios.yuujou.db.Group;
+import tk.bongostudios.yuujou.tasks.DeleteInviteTask;
+import tk.bongostudios.yuujou.Util;
 
 public class CommandGroup implements CommandExecutor {
 
@@ -264,16 +267,32 @@ public class CommandGroup implements CommandExecutor {
         }
 
         String invalidUsernames = "\n";
+        String validUsernames = "\n";
         int invalidUsernamesAmount = 0;
         for(String username : usernames) {
             User user = db.getUserByName(username);
             if(user == null) {
                 invalidUsernames += username + "\n";
+                invalidUsernamesAmount++;
                 continue;
             }
+            validUsernames += username + "\n";
             user.group = group; //need to change this
             db.saveUser(user);
         }
+
+        if(invalidUsernamesAmount == usernames.length) {
+            player.sendMessage(ChatColor.RED + "None of the usernames you sent were valid!");
+            return true;
+        }
+
+        String message;
+        if(usernames.length == 1) {
+            message = usernames[0] + ChatColor.GREEN + "was invited";
+        } else {
+            message = ChatColor.GREEN + "The following users were invited:" + ChatColor.RESET + validUsernames;
+        }
+        Util.communicateToGroup(group, message, new User[] { db.getUserByPlayer(player) });
 
         if(invalidUsernamesAmount > 0) {
             player.sendMessage(ChatColor.RED + "There were " + invalidUsernamesAmount + " invalid usernames:" + invalidUsernames + ChatColor.RESET + ChatColor.GREEN + "All the rest you mentioned were invited though.");
@@ -297,16 +316,32 @@ public class CommandGroup implements CommandExecutor {
         }
 
         String invalidUsernames = "\n";
+        String validUsernames = "\n";
         int invalidUsernamesAmount = 0;
         for(String username : usernames) {
             User user = db.getUserByName(username);
             if(user == null || user.group != group) {
                 invalidUsernames += username + "\n";
+                invalidUsernamesAmount++;
                 continue;
             }
+            validUsernames += username + "\n";
             group.addLeader(user);
         }
         db.saveGroup(group);
+
+        if(invalidUsernamesAmount == usernames.length) {
+            player.sendMessage(ChatColor.RED + "None of the usernames you sent were valid!");
+            return true;
+        }
+
+        String message = ChatColor.GREEN.toString();
+        if(usernames.length == 1) {
+            message += usernames[0] + " was just promoted!";
+        } else {
+            message += "The following users were just promoted:" + ChatColor.RESET + validUsernames;
+        }
+        Util.communicateToGroup(group, message, new User[] { db.getUserByPlayer(player) });
 
         if(invalidUsernamesAmount > 0) {
             player.sendMessage(ChatColor.RED + "There were " + invalidUsernamesAmount + " invalid usernames:" + invalidUsernames + ChatColor.RESET + ChatColor.GREEN + "All the rest you mentioned were promoted though.");
@@ -330,16 +365,32 @@ public class CommandGroup implements CommandExecutor {
         }
 
         String invalidUsernames = "\n";
+        String validUsernames = "\n";
         int invalidUsernamesAmount = 0;
         for(String username : usernames) {
             User user = db.getUserByName(username);
             if(user == null || user.group != group || !group.leaders.contains(user) || user == leader) {
                 invalidUsernames += username + "\n";
+                invalidUsernamesAmount++;
                 continue;
             }
+            validUsernames += username + "\n";
             group.removeLeader(user);
         }
         db.saveGroup(group);
+
+        if(invalidUsernamesAmount == usernames.length) {
+            player.sendMessage(ChatColor.RED + "None of the usernames you sent were valid!");
+            return true;
+        }
+
+        String message = ChatColor.RED.toString();
+        if(usernames.length == 1) {
+            message += usernames[0] + " was just demoted!";
+        } else {
+            message += "The following users were just demoted:" + ChatColor.RESET + validUsernames;
+        }
+        Util.communicateToGroup(group, message, new User[] { db.getUserByPlayer(player) });
 
         if(invalidUsernamesAmount > 0) {
             player.sendMessage(ChatColor.RED + "There were " + invalidUsernamesAmount + " invalid usernames:" + invalidUsernames + ChatColor.RESET + ChatColor.GREEN + "All the rest you mentioned were demoted though.");

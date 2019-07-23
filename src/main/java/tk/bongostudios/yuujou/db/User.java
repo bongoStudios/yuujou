@@ -1,5 +1,6 @@
 package tk.bongostudios.yuujou.db;
 
+import java.util.List;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
 import org.mongodb.morphia.annotations.IndexOptions;
@@ -17,6 +18,9 @@ public class User {
 
     @Indexed
     public String username;
+
+    @Reference
+    public List<Group> invites;
 
     @Reference
     public Group group;
