@@ -17,6 +17,18 @@ public final class Util {
 
     private static Database db;
 
+    public static void communicateToGroup(Group group, String message, User ignore) {
+        List<User> members = db.getUsersByGroup(group);
+        members.remove(ignore);
+        for(User member : members) {
+            Player player = Bukkit.getPlayer(UUID.fromString(member.uuid));
+            if(!player.isOnline()) {
+                continue;
+            }
+            player.sendMessage(message);
+        }
+    }
+
     public static void communicateToGroup(Group group, String message, User[] ignore) {
         List<User> members = db.getUsersByGroup(group);
         List<User> ignoredMembers = Arrays.asList(ignore);

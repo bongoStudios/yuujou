@@ -1,5 +1,6 @@
 package tk.bongostudios.yuujou.tasks;
 
+import java.util.List;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.entity.Player;
 import org.bukkit.Bukkit;
@@ -12,38 +13,36 @@ import tk.bongostudios.yuujou.Util;
 public class DeleteInviteTask extends BukkitRunnable {
 
     private final Database db;
-    private final String[] usernames;
-    private final String groupname;
+    private final List<User> users;
+    private final Group group;
 
-    public DeleteInviteTask(Database db, String[] usernames, String groupname) {
+    public DeleteInviteTask(Database db, List<User> users, Group group) {
         this.db = db;
-        this.usernames = usernames;
-        this.groupname = groupname;
+        this.users = users;
+        this.group = group;
     }
 
     @Override
     public void run() {
-        Group group = db.getGroupByName(groupname);
 
         String validUsernames = "\n";
         int validUsernamesAmount = 0;
-        for(String username : usernames) {
-            User user = db.getUserByName(username);
-            if(user.group == group) {
+        for(User user : users) {
+            if(user.group == group || user.invites.contains(group)) {
                 continue;
             }
 
             user.invites.remove(group);
             db.saveUser(user);
 
-            validUsernames += username + "\n";
+            validUsernames += user + "\n";
             validUsernamesAmount++;
             
-            Player player = Bukkit.getPlayer(username);
+            Player player = Bukkit.getPlayer(user.username);
             player.sendMessage(ChatColor.RED + "The invite to the group " + group.name + " has expired");
         }
         if(validUsernamesAmount == 1) {
-            Util.communicateToGroup(group, ChatColor.RED + "The invite for " + usernames[0] + " has expired");
+            Util.communicateToGroup(group, ChatColor.RED + "The invite for " + users.get(0) + " has expired");
             return;
         }
         Util.communicateToGroup(group, ChatColor.RED + "The invite for:" + validUsernames + "Has expired");
