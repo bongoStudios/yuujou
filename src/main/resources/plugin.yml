@@ -2,6 +2,7 @@ main: tk.bongostudios.yuujou.App
 name: Yuujou
 version: 0.1
 description: A group plugin (badly coded)
+api-version: 1.14
 commands:
    group:
       description: A multi-argument command for managing groups
