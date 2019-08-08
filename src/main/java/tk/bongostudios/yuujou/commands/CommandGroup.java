@@ -41,6 +41,9 @@ public class CommandGroup implements CommandExecutor {
             return this.removeGroup(sender, args[1]);
         }
         if(args[0].equalsIgnoreCase("list")) {
+            if(args.length < 2) {
+                return false;
+            }
             return this.listMembersOfGroup(sender, args[1]);
         }
 
@@ -105,6 +108,10 @@ public class CommandGroup implements CommandExecutor {
             if(args[0].equalsIgnoreCase("coords")) {
                 return this.getGroupCoords(player);
             }
+            if(args[0].equalsIgnoreCase("list")) {
+                return this.listMembersOfGroup(player);
+            }
+    
 
             return this.getUserInfo(player, args[0]);
         } 
@@ -134,13 +141,13 @@ public class CommandGroup implements CommandExecutor {
         user.setGroup(group);
         db.saveUser(user);
 
-        sender.sendMessage(ChatColor.RED + "The group has been created!");
+        sender.sendMessage(ChatColor.GREEN + "The group has been created!");
 
         return true;
     }
 
     private boolean removeGroup(CommandSender sender, String name) {
-        if(sender.hasPermission("yuujou.remove")) {
+        if(!sender.hasPermission("yuujou.remove")) {
             sender.sendMessage(ChatColor.RED + "You don't have permission to do that!");
             return true;
         }
@@ -165,24 +172,21 @@ public class CommandGroup implements CommandExecutor {
         if(member.group == null) {
             return false;
         }
+        if(Util.listHasUser(member.group.leaders, member)) {
+            member.group.leaders.remove(member);
+            db.saveGroup(member.group);
+        }
         member.setGroup(null);
         db.saveUser(member);
         return true;
     }
 
     private boolean listMembersOfGroup(CommandSender sender, String name) {
-        if(sender instanceof Player) {
-            Player player = (Player) sender;
-            if(name == null && !db.hasPlayerAGroup(player)) {
-                player.sendMessage(ChatColor.RED + "You need to be on a group or insert a name of a group");
-                return true;
-            }
-        }
         if(name != null && !db.hasGroupByName(name)) {
             sender.sendMessage(ChatColor.RED + "The group couldn't be found");
             return true;
         }
-        Group group = sender instanceof Player ? db.getGroupByPlayer((Player) sender) : db.getGroupByName(name);
+        Group group = db.getGroupByName(name);
         if(group.privateInfo && sender instanceof Player) {
             User user = db.getUserByPlayer((Player) sender);
             if(user.group.id != group.id) {
@@ -201,6 +205,30 @@ public class CommandGroup implements CommandExecutor {
         return true;
     }
 
+    private boolean listMembersOfGroup(Player player) {
+        if(!db.hasPlayerAGroup(player)) {
+            player.sendMessage(ChatColor.RED + "You need to be on a group or insert a name of a group");
+            return true;
+        }
+        Group group = db.getGroupByPlayer(player);
+        if(group.privateInfo) {
+            User user = db.getUserByPlayer(player);
+            if(user.group.id != group.id) {
+                player.sendMessage(ChatColor.RED + "The group has private info active");
+                return true;
+            }
+        }
+        List<User> members = db.getUsersByGroup(group);
+        String listMembers = "";
+
+        for(User member : members) {
+            listMembers += "\n" + member.username;
+        }
+
+        player.sendMessage("Members of the group " + ChatColor.DARK_PURPLE + group.name + ChatColor.RESET + listMembers);
+        return true;
+    }
+
     private boolean kickMemberFromGroup(Player player, String username) {
         if(!db.hasPlayerAGroup(player)) {
             player.sendMessage(ChatColor.RED + "You are not on a group");
@@ -209,7 +237,7 @@ public class CommandGroup implements CommandExecutor {
 
         Group group = db.getGroupByPlayer(player);
         User leader = db.getUserByPlayer(player);
-        if(!group.leaders.contains(leader)) {
+        if(!Util.listHasUser(group.leaders, leader)) {
             player.sendMessage(ChatColor.RED + "You are not a leader");
             return true;
         }
@@ -220,7 +248,7 @@ public class CommandGroup implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "That player doesn't exist");
             return true;
         }
-        if(!members.contains(target)) {
+        if(!Util.listHasUser(members, target)) {
             player.sendMessage(ChatColor.RED + "That player isn't on your group");
             return true;
         }
@@ -236,7 +264,7 @@ public class CommandGroup implements CommandExecutor {
 
         Group group = db.getGroupByPlayer(player);
         User leader = db.getUserByPlayer(player);
-        if(!group.leaders.contains(leader)) {
+        if(!Util.listHasUser(group.leaders, leader)) {
             player.sendMessage(ChatColor.RED + "You are not a leader");
             return true;
         }
@@ -255,7 +283,7 @@ public class CommandGroup implements CommandExecutor {
 
         Group group = db.getGroupByPlayer(player);
         User leader = db.getUserByPlayer(player);
-        if(!group.leaders.contains(leader)) {
+        if(!Util.listHasUser(group.leaders, leader)) {
             player.sendMessage(ChatColor.RED + "You are not a leader");
             return true;
         }
@@ -270,9 +298,13 @@ public class CommandGroup implements CommandExecutor {
         Group requesterGroup = db.getGroupByPlayer(player);
         User user = db.getUserByName(username);
         if(user == null) {
-            return false;
+            player.sendMessage(ChatColor.RED + "That user doesn't exist!");
+            return true;
         }
-        if((user.group == null || user.group.privateInfo) && (requesterGroup != user.group)) {
+        if(user.group == null) {
+            player.sendMessage("The user " + ChatColor.AQUA + player.getName() + ChatColor.RESET + " has no group or the group has private mode on");
+            return true;
+        } else if(user.group.privateInfo && requesterGroup != user.group) {
             player.sendMessage("The user " + ChatColor.AQUA + player.getName() + ChatColor.RESET + " has no group or the group has private mode on");
             return true;
         }
@@ -288,7 +320,8 @@ public class CommandGroup implements CommandExecutor {
 
         Group group = db.getGroupByPlayer(player);
         User leader = db.getUserByPlayer(player);
-        if(!group.leaders.contains(leader)) {
+        
+        if(!Util.listHasUser(group.leaders, leader)) {
             player.sendMessage(ChatColor.RED + "You are not a leader");
             return true;
         }
@@ -297,16 +330,17 @@ public class CommandGroup implements CommandExecutor {
         String validUsernames = "\n";
         List<User> validUsers = new ArrayList<User>();
         int invalidUsernamesAmount = 0;
+        List<User> members = db.getUsersByGroup(group);
         for(String username : usernames) {
             User user = db.getUserByName(username);
-            if(user == null) {
+            if(user == null || Util.listHasUser(members, user)) {
                 invalidUsernames += username + "\n";
                 invalidUsernamesAmount++;
                 continue;
             }
             validUsernames += username + "\n";
             user.invites.add(group);
-            Bukkit.getPlayer(user.username).sendMessage(ChatColor.GREEN + "You have been invited to " + group.name + ". Do " + ChatColor.GOLD + "</yuujou accept/refuse invite " + group.name + ">" + ChatColor.GREEN + " to accept/refuse the invite");
+            Bukkit.getPlayer(user.username).sendMessage(ChatColor.GREEN + "You have been invited to " + group.name + ". Do " + ChatColor.GRAY + "</yuujou accept/refuse invite " + group.name + ">" + ChatColor.GREEN + " to accept/refuse the invite");
             validUsers.add(user);
             db.saveUser(user);
         }
@@ -343,7 +377,7 @@ public class CommandGroup implements CommandExecutor {
 
         Group group = db.getGroupByPlayer(player);
         User leader = db.getUserByPlayer(player);
-        if(!group.leaders.contains(leader)) {
+        if(!Util.listHasUser(group.leaders, leader)) {
             player.sendMessage(ChatColor.RED + "You are not a leader");
             return true;
         }
@@ -392,7 +426,7 @@ public class CommandGroup implements CommandExecutor {
 
         Group group = db.getGroupByPlayer(player);
         User leader = db.getUserByPlayer(player);
-        if(!group.leaders.contains(leader)) {
+        if(!Util.listHasUser(group.leaders, leader)) {
             player.sendMessage(ChatColor.RED + "You are not a leader");
             return true;
         }
@@ -402,7 +436,7 @@ public class CommandGroup implements CommandExecutor {
         int invalidUsernamesAmount = 0;
         for(String username : usernames) {
             User user = db.getUserByName(username);
-            if(user == null || user.group != group || !group.leaders.contains(user) || user == leader) {
+            if(user == null || user.group.id != group.id || !Util.listHasUser(group.leaders, user) || user.id == leader.id) {
                 invalidUsernames += username + "\n";
                 invalidUsernamesAmount++;
                 continue;
@@ -439,7 +473,7 @@ public class CommandGroup implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "You aren't on a group, you must feel really lonely huh.");
             return true;
         }
-        if(user.group.leaders.contains(user) ) {
+        if(Util.listHasUser(user.group.leaders, user) ) {
             if(user.group.leaders.size() == 1 && db.getUsersByGroup(user.group).size() > 1) {
                 player.sendMessage(ChatColor.RED + "You should promote someone before leaving");
                 return true;
@@ -447,7 +481,11 @@ public class CommandGroup implements CommandExecutor {
             user.group.removeLeader(user);
             db.saveGroup(user.group);
         }
-        Util.communicateToGroup(user.group, ChatColor.GOLD + player.getName() + ChatColor.RED + " just left the group.", user);
+        Util.communicateToGroup(user.group, ChatColor.AQUA + player.getName() + ChatColor.RED + " just left the group.", user);
+        List<User> members = this.db.getUsersByGroup(user.group);
+        if(members.size() == 1) {
+            db.deleteGroup(user.group);
+        }    
         user.group = null;
         db.saveUser(user);
         player.sendMessage(ChatColor.RED + "You left the group.");
@@ -455,8 +493,7 @@ public class CommandGroup implements CommandExecutor {
     }
 
     private boolean acceptInvite(Player player, String groupname) {
-        User user = db.getUserByPlayer(player);
-        if(user.group != null) {
+        if(db.hasPlayerAGroup(player)) {
             player.sendMessage(ChatColor.RED + "You are on a group, you must leave it first to join the new one.");
             return true;
         }
@@ -467,12 +504,13 @@ public class CommandGroup implements CommandExecutor {
         }
 
         Group group = db.getGroupByName(groupname);
-        if(!user.invites.contains(group)) {
+        User user = db.getUserByPlayer(player);
+        if(!Util.listHasGroup(user.invites, group)) {
             player.sendMessage(ChatColor.RED + "You don't have an invite from that group");
             return true;
         }
         
-        Util.communicateToGroup(group, ChatColor.GOLD + player.getName() + ChatColor.GREEN + " joined the group.");
+        Util.communicateToGroup(group, ChatColor.AQUA + player.getName() + ChatColor.GREEN + " joined the group.");
         user.group = group;
         user.invites.remove(group);
         db.saveUser(user);
@@ -488,12 +526,12 @@ public class CommandGroup implements CommandExecutor {
 
         Group group = db.getGroupByName(groupname);
         User user = db.getUserByPlayer(player);
-        if(!user.invites.contains(group)) {
+        if(!Util.listHasGroup(user.invites, group)) {
             player.sendMessage(ChatColor.RED + "You don't have an invite from that group");
             return true;
         }
         
-        Util.communicateToGroup(group, ChatColor.GOLD + player.getName() + ChatColor.RED + " has been refused.");
+        Util.communicateToGroup(group, ChatColor.AQUA + player.getName() + ChatColor.RED + " has been refused.");
         user.invites.remove(group);
         db.saveUser(user);
         player.sendMessage(ChatColor.GREEN + "You refused the invite.");

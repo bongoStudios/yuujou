@@ -24,13 +24,11 @@ public class DeleteInviteTask extends BukkitRunnable {
 
     @Override
     public void run() {
-
+        if(group == null) return;
         String validUsernames = "\n";
         int validUsernamesAmount = 0;
         for(User user : users) {
-            if(user.group == group || user.invites.contains(group)) {
-                continue;
-            }
+            if(user.group == group || !Util.listHasGroup(user.invites, group)) continue;
 
             user.invites.remove(group);
             db.saveUser(user);

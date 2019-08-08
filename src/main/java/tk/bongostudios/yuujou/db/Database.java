@@ -80,7 +80,7 @@ public class Database {
     }
 
     public boolean hasPlayerAGroup(Player player) {
-        return this.getUserByPlayer(player) != null;
+        return this.getGroupByPlayer(player) != null;
     }
 
     public boolean hasGroupByName(String name) {

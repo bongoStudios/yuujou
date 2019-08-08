@@ -32,7 +32,7 @@ public final class Util {
     public static void communicateToGroup(Group group, String message, User[] ignore) {
         List<User> members = db.getUsersByGroup(group);
         List<User> ignoredMembers = Arrays.asList(ignore);
-        members.removeIf(user -> ignoredMembers.contains(user));
+        members.removeIf(user -> Util.listHasUser(ignoredMembers, user));
         for(User member : members) {
             Player player = Bukkit.getPlayer(UUID.fromString(member.uuid));
             if(!player.isOnline()) {
@@ -51,6 +51,24 @@ public final class Util {
             }
             player.sendMessage(message);
         }
+    }
+
+    public static boolean listHasUser(List<User> list, User user) {
+        for(User lUser : list) {
+            if(user.id == lUser.id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean listHasGroup(List<Group> list, Group group) {
+        for(Group lGroup : list) {
+            if(group.id == lGroup.id) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static Database getDb() {
