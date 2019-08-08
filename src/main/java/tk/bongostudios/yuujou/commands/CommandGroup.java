@@ -30,8 +30,12 @@ public class CommandGroup implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if(args.length == 0) {
+            return false;
+        }
+
         if(args[0].equalsIgnoreCase("remove")) {
-            if(args[1] == null) {
+            if(args.length < 2) {
                 return false;
             }
             return this.removeGroup(sender, args[1]);
@@ -44,13 +48,13 @@ public class CommandGroup implements CommandExecutor {
             Player player = (Player) sender;
 
             if(args[0].equalsIgnoreCase("create")) {
-                if(args[1] == null) {
+                if(args.length < 2) {
                     return false;
                 }
                 return this.createGroup(player, args[1]);
             }
             if(args[0].equalsIgnoreCase("kick")) {
-                if(args[1] == null) {
+                if(args.length < 2) {
                     return false;
                 }
                 return this.kickMemberFromGroup(player, args[1]);
@@ -62,19 +66,19 @@ public class CommandGroup implements CommandExecutor {
                 return this.switchPrivateInfoOnGroup(player);
             }
             if(args[0].equalsIgnoreCase("invite")) {
-                if(args[1] == null) {
+                if(args.length < 2) {
                     return false;
                 }
                 return this.inviteUsersToGroup(player, Arrays.copyOfRange(args, 1, args.length));
             }
             if(args[0].equalsIgnoreCase("promote")) {
-                if(args[1] == null) {
+                if(args.length < 2) {
                     return false;
                 }
                 return this.promoteUsersOfGroup(player, Arrays.copyOfRange(args, 1, args.length));
             }
             if(args[0].equalsIgnoreCase("demote")) {
-                if(args[1] == null) {
+                if(args.length < 2) {
                     return false;
                 }
                 return this.demoteUsersOfGroup(player, Arrays.copyOfRange(args, 1, args.length));
@@ -83,7 +87,7 @@ public class CommandGroup implements CommandExecutor {
                 return this.leaveGroup(player);
             }
             if(args[0].equalsIgnoreCase("accept")) {
-                if(args[1] == null || args[2] == null) {
+                if(args.length < 3) {
                     return false;
                 }
                 if(args[1].equalsIgnoreCase("invite")) {
@@ -91,7 +95,7 @@ public class CommandGroup implements CommandExecutor {
                 }
             }
             if(args[0].equalsIgnoreCase("refuse")) {
-                if(args[1] == null || args[2] == null) {
+                if(args.length < 3) {
                     return false;
                 }
                 if(args[1].equalsIgnoreCase("invite")) {
@@ -102,11 +106,7 @@ public class CommandGroup implements CommandExecutor {
                 return this.getGroupCoords(player);
             }
 
-            if(args[0] != null) {
-                return this.getUserInfo(player, args[0]);
-            }
-
-            return false;
+            return this.getUserInfo(player, args[0]);
         } 
 
         throw new CommandException("Only players can execute this command");
