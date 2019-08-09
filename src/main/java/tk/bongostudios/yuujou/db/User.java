@@ -16,7 +16,7 @@ public class User {
     @Indexed(options = @IndexOptions(unique = true))
     public String uuid;
 
-    @Indexed
+    @Indexed(options = @IndexOptions(unique = true))
     public String username;
 
     @Reference

@@ -53,11 +53,13 @@ public class Database {
     public User getUserByName(String username) {
         User u = userDAO.findOne("username", username);
         if (u == null) {
+            boolean test = false;
             try {
                 Bukkit.getPlayer(username);      
             } catch(NullPointerException npe) {
-                return null;
+                test = true;
             }
+            if(test) return null;
             Player player = Bukkit.getPlayer(username); 
             u = new User();
             u.setUUID(player.getUniqueId().toString());

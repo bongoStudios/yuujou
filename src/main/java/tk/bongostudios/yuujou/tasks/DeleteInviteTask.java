@@ -1,6 +1,5 @@
 package tk.bongostudios.yuujou.tasks;
 
-import java.util.List;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.entity.Player;
 import org.bukkit.Bukkit;
@@ -13,37 +12,26 @@ import tk.bongostudios.yuujou.Util;
 public class DeleteInviteTask extends BukkitRunnable {
 
     private final Database db;
-    private final List<User> users;
+    private final User user;
     private final Group group;
 
-    public DeleteInviteTask(Database db, List<User> users, Group group) {
+    public DeleteInviteTask(Database db, User user, Group group) {
         this.db = db;
-        this.users = users;
+        this.user = user;
         this.group = group;
     }
 
     @Override
     public void run() {
         if(group == null) return;
-        String validUsernames = "\n";
-        int validUsernamesAmount = 0;
-        for(User user : users) {
-            if(user.group == group || !Util.listHasGroup(user.invites, group)) continue;
+        if(user.group == group || !Util.listHasGroup(user.invites, group)) return;
 
-            user.invites.remove(group);
-            db.saveUser(user);
-
-            validUsernames += user + "\n";
-            validUsernamesAmount++;
+        user.invites.remove(group);
+        db.saveUser(user);
             
-            Player player = Bukkit.getPlayer(user.username);
-            player.sendMessage(ChatColor.RED + "The invite to the group " + group.name + " has expired");
-        }
-        if(validUsernamesAmount == 1) {
-            Util.communicateToGroup(group, ChatColor.RED + "The invite for " + users.get(0) + " has expired");
-            return;
-        }
-        Util.communicateToGroup(group, ChatColor.RED + "The invite for:" + validUsernames + "Has expired");
+        Player player = Bukkit.getPlayer(user.username);
+        player.sendMessage(ChatColor.RED + "The invite to the group " + group.name + " has expired");
+        Util.communicateToGroup(group, ChatColor.RED + "The invite for " + user.username + " has expired");
     }
 
 }

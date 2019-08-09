@@ -72,7 +72,7 @@ public class CommandGroup implements CommandExecutor {
                 if(args.length < 2) {
                     return false;
                 }
-                return this.inviteUsersToGroup(player, Arrays.copyOfRange(args, 1, args.length));
+                return this.inviteUserToGroup(player, args[1]);
             }
             if(args[0].equalsIgnoreCase("promote")) {
                 if(args.length < 2) {
@@ -312,7 +312,7 @@ public class CommandGroup implements CommandExecutor {
         return true;
     }
 
-    private boolean inviteUsersToGroup(Player player, String[] usernames) {
+    private boolean inviteUserToGroup(Player player, String username) {
         if(!db.hasPlayerAGroup(player)) {
             player.sendMessage(ChatColor.RED + "You are not on a group");
             return true;
@@ -326,46 +326,19 @@ public class CommandGroup implements CommandExecutor {
             return true;
         }
 
-        String invalidUsernames = "\n";
-        String validUsernames = "\n";
-        List<User> validUsers = new ArrayList<User>();
-        int invalidUsernamesAmount = 0;
         List<User> members = db.getUsersByGroup(group);
-        for(String username : usernames) {
-            User user = db.getUserByName(username);
-            if(user == null || Util.listHasUser(members, user)) {
-                invalidUsernames += username + "\n";
-                invalidUsernamesAmount++;
-                continue;
-            }
-            validUsernames += username + "\n";
-            user.invites.add(group);
-            Bukkit.getPlayer(user.username).sendMessage(ChatColor.GREEN + "You have been invited to " + group.name + ". Do " + ChatColor.GRAY + "</yuujou accept/refuse invite " + group.name + ">" + ChatColor.GREEN + " to accept/refuse the invite");
-            validUsers.add(user);
-            db.saveUser(user);
-        }
-
-
-        if(invalidUsernamesAmount == usernames.length) {
-            player.sendMessage(ChatColor.RED + "None of the usernames you sent were valid!");
+        User user = db.getUserByName(username);
+        if(user == null || Util.listHasUser(members, user)) {
+            player.sendMessage(ChatColor.RED + "The username you sent wasn't valid!");
             return true;
         }
+        user.invites.add(group);
+        Bukkit.getPlayer(user.username).sendMessage(ChatColor.GREEN + "You have been invited to " + group.name + ". Do " + ChatColor.GRAY + "</yuujou accept/refuse invite " + group.name + ">" + ChatColor.GREEN + " to accept/refuse the invite");
+        db.saveUser(user);
 
-        new DeleteInviteTask(db, validUsers, group).runTaskLater(plugin, 1200);
+        new DeleteInviteTask(db, user, group).runTaskLater(plugin, 1200);
 
-        String message;
-        if(usernames.length == 1) {
-            message = usernames[0] + ChatColor.GREEN + "was invited";
-        } else {
-            message = ChatColor.GREEN + "The following users were invited:" + ChatColor.RESET + validUsernames;
-        }
-        Util.communicateToGroup(group, message, new User[] { db.getUserByPlayer(player) });
-
-        if(invalidUsernamesAmount > 0) {
-            player.sendMessage(ChatColor.RED + "There were " + invalidUsernamesAmount + " invalid usernames:" + invalidUsernames + ChatColor.RESET + ChatColor.GREEN + "All the rest you mentioned were invited though.");
-            return true;
-        }
-        player.sendMessage(ChatColor.GREEN + "All the usernames you mentioned were invited");
+        Util.communicateToGroup(group, user.username + ChatColor.GREEN + "was invited");
         return true;
     }
 
@@ -387,7 +360,7 @@ public class CommandGroup implements CommandExecutor {
         int invalidUsernamesAmount = 0;
         for(String username : usernames) {
             User user = db.getUserByName(username);
-            if(user == null || user.group != group) {
+            if(user == null || user.group.id != group.id) {
                 invalidUsernames += username + "\n";
                 invalidUsernamesAmount++;
                 continue;
